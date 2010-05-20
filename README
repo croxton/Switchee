@@ -1,0 +1,8 @@
+Switch/case control structure for templates
+-------------------------------------------
+
+With EEs if/else conditionals, each condition is parsed before  being removed at the end of the parsing process. This means if you wrap if/else tags around lots of other tags then your template will be running many unnecessary queries and functions.
+
+As Switchee is a tag we can use parse=“inward” to ensure that unmatched conditions are not parsed before being removed from the template.
+
+Switchee can only be used for simple conditional logic. Like PHPs switch/case, it supports a default value.
