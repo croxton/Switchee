@@ -24,17 +24,20 @@ class Switchee {
 	 */
 	public function Switchee() 
 	{
-		global $TMPL, $REGX;
+		$this->EE =& get_instance();
 		
 		// the variable we want to find
-		$var = $TMPL->fetch_param('variable') ? $TMPL->fetch_param('variable') : '';
+		$var = $this->EE->TMPL->fetch_param('variable') ? $this->EE->TMPL->fetch_param('variable') : '';
 		
 		// fetch the tagdata
-		$tagdata = $TMPL->tagdata;
+		$tagdata = $this->EE->TMPL->tagdata;
 		
 		// loop through case parameters and find a case pair value that matches our variable
 		$index = 0;
-		foreach ($TMPL->var_pair as $key => $val)
+		
+		$this->return_data = '';
+		
+		foreach ($this->EE->TMPL->var_pair as $key => $val)
 		{
 			// is this tag pair a case?
 			if (preg_match('/^case/', $key))
@@ -44,7 +47,7 @@ class Switchee {
 					
 				// define the pattern we're searching for in tagdata that encloses the current case content
 				// make search string safe by replacing any regex in the case values with a marker
-				$pattern = '/{case_'.$index.'}(.*){&#47;case}/Usi';
+				$pattern = '/{case_'.$index.'}(.*){\/case}/Usi';
 				$tagdata = str_replace($key, 'case_'.$index, $tagdata);
 				
 				if(isset($val['value']))
@@ -70,8 +73,8 @@ class Switchee {
 						}
 						
 						// decode any encoded characters
-						$case_value = $REGX->unhtmlentities($case_value);
-						$var 		= $REGX->unhtmlentities($var);
+						$case_value = $this->EE->security->entity_decode($case_value);
+						$var 		= $this->EE->security->entity_decode($var);
 
 						// is the case value a regular expression?
 						// check for a string contained within hashes #regex#
