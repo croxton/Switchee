@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'1.4',
+  'pi_version' =>'1.5',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -24,14 +24,25 @@ class Switchee {
 	 */
 	public function Switchee() 
 	{
-		global $TMPL, $REGX;
+		global $TMPL, $REGX, $IN;
 		
 		// the variable we want to find
 		$var = $TMPL->fetch_param('variable') ? $TMPL->fetch_param('variable') : '';
 		
+		// register POST and GET values
+		if (strncmp($var, 'get:', 4) == 0)
+		{
+			$var = filter_var($IN->GBL(substr($var, 4), 'GET'), FILTER_SANITIZE_STRING);
+		}
+		
+		if (strncmp($var, 'post:', 5) == 0)
+		{
+			$var = filter_var($IN->GBL(substr($var, 5), 'POST'), FILTER_SANITIZE_STRING);
+		}
+		
 		// fetch the tagdata
 		$tagdata = $TMPL->tagdata;
-		
+			
 		// loop through case parameters and find a case pair value that matches our variable
 		$index = 0;
 		foreach ($TMPL->var_pair as $key => $val)
@@ -109,6 +120,9 @@ class Switchee {
 				}	
 			}
 		}
+		
+		// replace namespaced no_results with the real deal
+		$this->return_data = str_replace(strtolower(__CLASS__).'_no_results', 'no_results', $this->return_data);
 	}
 
 	// usage instructions
@@ -139,6 +153,17 @@ HOW TO USE
 	{/case}
 	
 {/exp:switchee}
+
+
+How to support no_result blocks inside wrapped tags:
+
+{if switchee_no_results}
+	{redirect="channel/noresult"}
+{/if}
+
+GET and POST globals can also be evaluated by prefixing with get: or post:, e.g.:
+{exp:switchee variable = "post:my_var" parse="inward"}
+
 
 Requires PHP 5.
 
