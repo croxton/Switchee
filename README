@@ -5,4 +5,10 @@ With EEs if/else conditionals, each condition is parsed before  being removed at
 
 As Switchee is a tag we can use parse=“inward” to ensure that unmatched conditions are not parsed before being removed from the template.
 
-Switchee can only be used for simple conditional logic. Like PHPs switch/case, it supports a default value.
+* Allows multiple case values separated by pipe ‘|’.
+* Supports regular expression matching like so: #regex#
+* Multiple regular expressions separated by | can be used for one case value
+* Supports empty string matches represesnted by ‘’ or “”
+
+Developers: 
+If you wish to develop the EE 1.6.x compatible version of this plugin, please use the 1.6 branch. Use the master branch for EE 2.x.
