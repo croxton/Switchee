@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'1.5',
+  'pi_version' =>'1.6',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -38,6 +38,28 @@ class Switchee {
 		if (strncmp($var, 'post:', 5) == 0)
 		{
 			$var = filter_var($this->EE->input->post(substr($var, 5)), FILTER_SANITIZE_STRING);
+		}
+		
+		// register variables created by Stash
+		if (strncmp($var, 'stash:', 6) == 0)
+		{
+			if (isset($this->EE->session->cache['stash']))
+			{
+				$var = substr($var, 6);
+				if (array_key_exists($var, $this->EE->session->cache['stash']))
+				{
+					// houston, we have a value
+					$var = $this->EE->session->cache['stash'][$var];
+				}
+				else
+				{
+					$var = '';
+				}
+			}
+			else
+			{
+				$var = '';
+			}
 		}
 		
 		// fetch the tagdata
