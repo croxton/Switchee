@@ -39,7 +39,7 @@ HOW TO USE
 		
 		{!-- you can also nest Switchee by leaving off the 'exp:' in nested tags : --}
 		{switchee variable="{another_variable_to_test}" parse="inward"}
-			{case value="value1" default="Yes"}
+			{case value="value1"}
 				nested content to show
 			{/case}
 		{/switchee}	
