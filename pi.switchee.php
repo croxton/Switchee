@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'1.6',
+  'pi_version' =>'2.0',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -11,7 +11,8 @@ $plugin_info = array(
 
 class Switchee {
 	
-	var $return_data = '';
+	public 	$return_data = '';
+	private $_ph = array();
 	
 	/** 
 	 * Constructor
@@ -62,15 +63,35 @@ class Switchee {
 			}
 		}
 		
+		// register global vars
+		if (strncmp($var, 'global:', 7) == 0)
+		{
+			$var = substr($var, 7);
+			if (array_key_exists($var, $this->EE->config->_global_vars))
+			{
+				$var = $this->EE->config->_global_vars[$var];
+			}
+			else
+			{
+				$var = '';
+			}
+		}
+		
 		// fetch the tagdata
 		$tagdata = $this->EE->TMPL->tagdata;
+		
+		// replace content inside nested tags with indexed placeholders, storing it in an array for later
+		// here's the tricky bit - we only match outer tags
+		$pattern = '/{switchee(?>(?!{\/?switchee).|(?R))*{\/switchee/si';	
+		$tagdata = preg_replace_callback($pattern, array(get_class($this), '_placeholders'), $tagdata);
 		
 		// loop through case parameters and find a case pair value that matches our variable
 		$index = 0;
 		
-		$this->return_data = '';
+		// now we need to generate a new array of tag pairs for our tagdata
+		$tag_vars = $this->EE->functions->assign_variables($tagdata);
 		
-		foreach ($this->EE->TMPL->var_pair as $key => $val)
+		foreach ($tag_vars['var_pair'] as $key => $val)
 		{
 			// is this tag pair a case?
 			if (preg_match('/^case/', $key))
@@ -107,7 +128,7 @@ class Switchee {
 						
 						// decode any encoded characters
 						$case_value = $this->EE->security->entity_decode($case_value);
-						$var 		= $this->EE->security->entity_decode($var);
+						$var = $this->EE->security->entity_decode($var);
 
 						// is the case value a regular expression?
 						// check for a string contained within hashes #regex#
@@ -148,6 +169,30 @@ class Switchee {
 		
 		// replace namespaced no_results with the real deal
 		$this->return_data = str_replace(strtolower(__CLASS__).'_no_results', 'no_results', $this->return_data);
+		
+		// restore original content inside nested tags
+		foreach ($this->_ph as $index => $val)
+		{
+			// convert the outer shell of {switchee} tag pairs to plugin tags {exp:switchee}
+			// now we can do this all over again...
+			$val = str_replace( array('{switchee', '{/switchee'), array('{exp:switchee', '{/exp:switchee'), $val );
+			$this->return_data = str_replace('[_'.__CLASS__.'_'.($index+1).']', $val, $this->return_data);
+		}
+	}
+	
+	/** 
+	 * _placeholders
+	 *
+	 * Replaces nested tag content with placeholders
+	 *
+	 * @access private
+	 * @param array
+	 * @return string
+	 */	
+	private function _placeholders($matches)
+	{
+		$this->_ph[] = $matches[0];
+		return '[_'.__CLASS__.'_'.count($this->_ph).']';
 	}
 
 	// usage instructions
@@ -177,6 +222,17 @@ HOW TO USE
 		Use '' to represent an empty string
 	{/case}
 	
+	{case value="value4" default="Yes"}	
+		
+		{!-- you can also nest Switchee by leaving off the 'exp:' in nested tags : --}
+		{switchee variable="{another_variable_to_test}" parse="inward"}
+			{case value="value1" default="Yes"}
+				nested content to show
+			{/case}
+		{/switchee}	
+		
+	{/case}
+	
 {/exp:switchee}
 
 How to support no_result blocks inside wrapped tags:
@@ -185,8 +241,14 @@ How to support no_result blocks inside wrapped tags:
 	{redirect="channel/noresult"}
 {/if}
 
-GET and POST globals can also be evaluated by prefixing with get: or post:, e.g.:
+GET and POST globals can be evaluated by prefixing with get: or post:, e.g.:
 {exp:switchee variable = "post:my_var" parse="inward"}
+
+Any global variable can be evaluated by prefixing with global:, e.g.:
+{exp:switchee variable = "global:my_var" parse="inward"}
+
+Any Stash module variable can be evaluated by prefixing with stash:, e.g.:
+{exp:switchee variable = "stash:my_var" parse="inward"}
 
 	<?php
 		$buffer = ob_get_contents();
