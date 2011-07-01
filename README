@@ -1,5 +1,6 @@
 Switchee v2.0 (beta)
 
+
 Switch/case control structure for templates
 -------------------------------------------
 
@@ -11,9 +12,6 @@ As Switchee is a tag we can use parse=“inward” to ensure that unmatched cond
 * Supports regular expression matching like so: #regex#
 * Multiple regular expressions separated by | can be used for one case value
 * Supports empty string matches represesnted by ‘’ or “”
-
-Developers: 
-Th
 
 -------------------
 HOW TO USE
