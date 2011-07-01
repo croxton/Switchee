@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'2.0',
+  'pi_version' =>'2.0.1',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -149,8 +149,7 @@ class Switchee {
 							preg_match($pattern, $tagdata, $matches);
 							$this->return_data = @$matches[1];
 							break 2;
-						}	
-						
+						}
 					}
 				}
 				
@@ -175,7 +174,7 @@ class Switchee {
 		{
 			// convert the outer shell of {switchee} tag pairs to plugin tags {exp:switchee}
 			// now we can do this all over again...
-			$val = str_replace( array('{switchee', '{/switchee'), array('{exp:switchee', '{/exp:switchee'), $val );
+			$val = preg_replace( array('/^{switchee/', '/{\/switchee$/'), array('{exp:switchee', '{/exp:switchee'), $val);
 			$this->return_data = str_replace('[_'.__CLASS__.'_'.($index+1).']', $val, $this->return_data);
 		}
 	}
