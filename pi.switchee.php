@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'2.0.1',
+  'pi_version' =>'2.0.2',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -42,25 +42,10 @@ class Switchee {
 		}
 		
 		// register variables created by Stash
-		if (strncmp($var, 'stash:', 6) == 0)
+		if (strncmp($var, 'stash:', 6) == 0 && class_exists('Stash'))
 		{
-			if (isset($this->EE->session->cache['stash']))
-			{
-				$var = substr($var, 6);
-				if (array_key_exists($var, $this->EE->session->cache['stash']))
-				{
-					// houston, we have a value
-					$var = $this->EE->session->cache['stash'][$var];
-				}
-				else
-				{
-					$var = '';
-				}
-			}
-			else
-			{
-				$var = '';
-			}
+			$var = substr($var, 6);
+			$var = stash::get($var);
 		}
 		
 		// register global vars
@@ -174,7 +159,7 @@ class Switchee {
 		{
 			// convert the outer shell of {switchee} tag pairs to plugin tags {exp:switchee}
 			// now we can do this all over again...
-			$val = preg_replace( array('/^{switchee/', '/{\/switchee$/'), array('{exp:switchee', '{/exp:switchee'), $val);
+			$val = preg_replace( array('/^{switchee/i', '/{\/switchee$/i'), array('{exp:switchee', '{/exp:switchee'), $val);
 			$this->return_data = str_replace('[_'.__CLASS__.'_'.($index+1).']', $val, $this->return_data);
 		}
 	}
