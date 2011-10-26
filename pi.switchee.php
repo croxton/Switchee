@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'2.0.2',
+  'pi_version' =>'2.0.3',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -27,8 +27,14 @@ class Switchee {
 	{
 		$this->EE =& get_instance();
 		
+		// fetch the tagdata
+		$tagdata = $this->EE->TMPL->tagdata;
+		
 		// the variable we want to find
 		$var = $this->EE->TMPL->fetch_param('variable') ? $this->EE->TMPL->fetch_param('variable') : '';
+		
+		// debug?
+		$debug = (bool) preg_match('/1|on|yes|y/i', $this->EE->TMPL->fetch_param('debug'));	
 		
 		// register POST and GET values
 		if (strncmp($var, 'get:', 4) == 0)
@@ -42,7 +48,8 @@ class Switchee {
 		}
 		
 		// register variables created by Stash
-		if (strncmp($var, 'stash:', 6) == 0 && class_exists('Stash'))
+		// warning: stash will create a new template object, overwriting the current instance
+		if (strncmp($var, 'stash:', 6) == 0)
 		{
 			$var = substr($var, 6);
 			$var = stash::get($var);
@@ -52,18 +59,23 @@ class Switchee {
 		if (strncmp($var, 'global:', 7) == 0)
 		{
 			$var = substr($var, 7);
+			
 			if (array_key_exists($var, $this->EE->config->_global_vars))
 			{
 				$var = $this->EE->config->_global_vars[$var];
 			}
 			else
 			{
-				$var = '';
+				// global has not been parsed yet, so we'll do it the hard way (this adds some overhead)
+				$var = $this->EE->TMPL->parse_globals(LD.$var.RD);
 			}
 		}
 		
-		// fetch the tagdata
-		$tagdata = $this->EE->TMPL->tagdata;
+		// log
+		if ($debug)
+		{
+			$this->EE->TMPL->log_item("Switchee: evaluating: {$var}");
+		}
 		
 		// replace content inside nested tags with indexed placeholders, storing it in an array for later
 		// here's the tricky bit - we only match outer tags
@@ -77,10 +89,10 @@ class Switchee {
 		$tag_vars = $this->EE->functions->assign_variables($tagdata);
 		
 		foreach ($tag_vars['var_pair'] as $key => $val)
-		{
+		{	
 			// is this tag pair a case?
 			if (preg_match('/^case/', $key))
-			{
+			{		
 				// index of the case tag pair we're looking at
 				$index++;	
 					
@@ -91,6 +103,7 @@ class Switchee {
 				
 				if(isset($val['value']))
 				{
+
 					$val_array = array();
 					
 					if (stristr($val['value'], '|'))
@@ -233,6 +246,10 @@ Any global variable can be evaluated by prefixing with global:, e.g.:
 
 Any Stash module variable can be evaluated by prefixing with stash:, e.g.:
 {exp:switchee variable = "stash:my_var" parse="inward"}
+
+Debugging:
+To enable logging add the parameter debug="yes", e.g.:
+{exp:switchee variable = "my_var" parse="inward" debug="yes"}
 
 	<?php
 		$buffer = ob_get_contents();
