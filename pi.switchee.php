@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'2.0.3',
+  'pi_version' =>'2.0.4',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -26,6 +26,16 @@ class Switchee {
 	public function Switchee() 
 	{
 		$this->EE =& get_instance();
+		
+		// reduce the PCRE default recursion limit to a safe level so that if a stack overflow
+		// occurs a PCRE error is generated rather than a server crash (segmentation fault)
+		// Apache *nix executable stack size is 8Mb, so safe size is 16777
+		// Apache Win32 executable stack size is 256Kb, so safe size is 524
+		ini_set('pcre.recursion_limit', '16777');
+		
+		// PCRE default backtrack limit is low on PHP <5.3.6 
+		// Increase it to the default value in newer versions of PHP
+		ini_set('pcre.backtrack_limit', '1000000');
 		
 		// fetch the tagdata
 		$tagdata = $this->EE->TMPL->tagdata;
@@ -74,13 +84,19 @@ class Switchee {
 		// log
 		if ($debug)
 		{
-			$this->EE->TMPL->log_item("Switchee: evaluating: {$var}");
+			$this->EE->TMPL->log_item("Switchee: evaluating variable {$var}");
 		}
 		
 		// replace content inside nested tags with indexed placeholders, storing it in an array for later
 		// here's the tricky bit - we only match outer tags
-		$pattern = '/{switchee(?>(?!{\/?switchee).|(?R))*{\/switchee/si';	
+		$pattern = '/{switchee(?>(?!{\/?switchee).|(?R))*{\/switchee/si';
 		$tagdata = preg_replace_callback($pattern, array(get_class($this), '_placeholders'), $tagdata);
+		
+		// returns NULL on PCRE error
+		if ($tagdata === NULL && $debug)
+		{
+			$this->_pcre_error();
+		}
 		
 		// loop through case parameters and find a case pair value that matches our variable
 		$index = 0;
@@ -96,10 +112,12 @@ class Switchee {
 				// index of the case tag pair we're looking at
 				$index++;	
 					
-				// define the pattern we're searching for in tagdata that encloses the current case content
-				// make search string safe by replacing any regex in the case values with a marker
-				$pattern = '/{case_'.$index.'}(.*){\/case}/Usi';
+				// replace any regex in the case values with a marker
 				$tagdata = str_replace($key, 'case_'.$index, $tagdata);
+				
+				// get the position of the content inside the case being evaluated
+				$starts_at = strpos($tagdata, "{case_".$index."}") + strlen("{case_".$index."}");
+				$ends_at = strpos($tagdata, "{/case}", $starts_at);
 				
 				if(isset($val['value']))
 				{
@@ -133,10 +151,16 @@ class Switchee {
 						if (preg_match('/^#(.*)#$/', $case_value))
 						{
 							if (preg_match($case_value, $var))
-							{
-								// we've found a match, grab case content and exit loop
-								preg_match($pattern, $tagdata, $matches);
-								$this->return_data = @$matches[1]; // fail gracefully
+							{		
+								// we've found a match, grab case content and exit loop	
+								$this->return_data = substr($tagdata, $starts_at, $ends_at - $starts_at);
+									
+								// log
+								if ($debug)
+								{
+									$this->EE->TMPL->log_item("Switchee: regex match: case '{$case_value}' matched variable '{$var}'");
+								}
+								
 								break 2;
 							}
 						}
@@ -144,8 +168,14 @@ class Switchee {
 						if ($case_value == $var)
 						{
 							// we've found a match, grab case content and exit loop
-							preg_match($pattern, $tagdata, $matches);
-							$this->return_data = @$matches[1];
+							$this->return_data = substr($tagdata, $starts_at, $ends_at - $starts_at);
+							
+							// log
+							if ($debug)
+							{
+								$this->EE->TMPL->log_item("Switchee: string match: case '{$case_value}' matched variable '{$var}'");
+							}	
+
 							break 2;
 						}
 					}
@@ -156,9 +186,15 @@ class Switchee {
 				{
 					if(strtolower($val['default']) == 'yes' || strtolower($val['default']) == 'true' || $val['default'] == '1')
 					{
-						// found a default, save matched content and continue loop
-						preg_match($pattern, $tagdata, $matches);
-						$this->return_data = @$matches[1];
+						// found a default, save matched content but keep search for a mtach (continue loop)
+						$this->return_data = substr($tagdata, $starts_at, $ends_at - $starts_at);
+							
+						// log
+						if ($debug)
+						{
+							$this->EE->TMPL->log_item("Switchee: default case found for variable '{$var}'. This will be returned if no match is found.");
+						}	
+	
 					}
 				}	
 			}
@@ -190,6 +226,50 @@ class Switchee {
 	{
 		$this->_ph[] = $matches[0];
 		return '[_'.__CLASS__.'_'.count($this->_ph).']';
+	}	
+	
+	/** 
+	 * _pcre error
+	 *
+	 * Log PCRE error for debugging
+	 *
+	 * @access private
+	 * @return void
+	 */		
+	private function _pcre_error()
+	{
+		// either an unsuccessful match, or a PCRE error occurred
+        $pcre_err = preg_last_error();  // PHP 5.2 and above
+
+        if ($pcre_err === PREG_NO_ERROR) 
+		{
+			$this->EE->TMPL->log_item("Switchee: Successful non-match");
+        } 
+		else 
+		{
+            // preg_match error :(
+            switch ($pcre_err) 
+			{
+                case PREG_INTERNAL_ERROR:
+                    $this->EE->TMPL->log_item("Switchee: PREG_INTERNAL_ERROR");
+                    break;
+                case PREG_BACKTRACK_LIMIT_ERROR:
+                    $this->EE->TMPL->log_item("Switchee: PREG_BACKTRACK_LIMIT_ERROR");
+                    break;
+                case PREG_RECURSION_LIMIT_ERROR:
+                    $this->EE->TMPL->log_item("Switchee: PREG_RECURSION_LIMIT_ERROR");
+                    break;
+                case PREG_BAD_UTF8_ERROR:
+                    $this->EE->TMPL->log_item("Switchee: PREG_BAD_UTF8_ERROR");
+                    break;
+                case PREG_BAD_UTF8_OFFSET_ERROR:
+                    $this->EE->TMPL->log_item("Switchee: PREG_BAD_UTF8_OFFSET_ERROR");
+                    break;
+                default:
+                    $this->EE->TMPL->log_item("Switchee: Unrecognized PREG error");
+                    break;
+            }
+		}
 	}
 
 	// usage instructions
