@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'2.0.4',
+  'pi_version' =>'2.0.5',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -89,7 +89,11 @@ class Switchee {
 		
 		// replace content inside nested tags with indexed placeholders, storing it in an array for later
 		// here's the tricky bit - we only match outer tags
+		/*
 		$pattern = '/{switchee(?>(?!{\/?switchee).|(?R))*{\/switchee/si';
+		*/
+		// more memory efficient version of the above...
+		$pattern = '#{switchee(?>(?:[^{]++|{(?!\/?switchee[^}]*}))+|(?R))*{\/switchee#si';
 		$tagdata = preg_replace_callback($pattern, array(get_class($this), '_placeholders'), $tagdata);
 		
 		// returns NULL on PCRE error
@@ -241,34 +245,34 @@ class Switchee {
 		// either an unsuccessful match, or a PCRE error occurred
         $pcre_err = preg_last_error();  // PHP 5.2 and above
 
-        if ($pcre_err === PREG_NO_ERROR) 
+		if ($pcre_err === PREG_NO_ERROR)
 		{
 			$this->EE->TMPL->log_item("Switchee: Successful non-match");
-        } 
+		}
 		else 
 		{
             // preg_match error :(
-            switch ($pcre_err) 
+			switch ($pcre_err) 
 			{
-                case PREG_INTERNAL_ERROR:
-                    $this->EE->TMPL->log_item("Switchee: PREG_INTERNAL_ERROR");
-                    break;
-                case PREG_BACKTRACK_LIMIT_ERROR:
-                    $this->EE->TMPL->log_item("Switchee: PREG_BACKTRACK_LIMIT_ERROR");
-                    break;
-                case PREG_RECURSION_LIMIT_ERROR:
-                    $this->EE->TMPL->log_item("Switchee: PREG_RECURSION_LIMIT_ERROR");
-                    break;
-                case PREG_BAD_UTF8_ERROR:
-                    $this->EE->TMPL->log_item("Switchee: PREG_BAD_UTF8_ERROR");
-                    break;
-                case PREG_BAD_UTF8_OFFSET_ERROR:
-                    $this->EE->TMPL->log_item("Switchee: PREG_BAD_UTF8_OFFSET_ERROR");
-                    break;
-                default:
-                    $this->EE->TMPL->log_item("Switchee: Unrecognized PREG error");
-                    break;
-            }
+			    case PREG_INTERNAL_ERROR:
+			        $this->EE->TMPL->log_item("Switchee: PREG_INTERNAL_ERROR");
+			        break;
+			    case PREG_BACKTRACK_LIMIT_ERROR:
+			        $this->EE->TMPL->log_item("Switchee: PREG_BACKTRACK_LIMIT_ERROR");
+			        break;
+			    case PREG_RECURSION_LIMIT_ERROR:
+			        $this->EE->TMPL->log_item("Switchee: PREG_RECURSION_LIMIT_ERROR");
+			        break;
+			    case PREG_BAD_UTF8_ERROR:
+			        $this->EE->TMPL->log_item("Switchee: PREG_BAD_UTF8_ERROR");
+			        break;
+			    case PREG_BAD_UTF8_OFFSET_ERROR:
+			        $this->EE->TMPL->log_item("Switchee: PREG_BAD_UTF8_OFFSET_ERROR");
+			        break;
+			    default:
+			        $this->EE->TMPL->log_item("Switchee: Unrecognized PREG error");
+			        break;
+			}
 		}
 	}
 
