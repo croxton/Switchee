@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'2.0.5',
+  'pi_version' =>'2.0.6',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -27,8 +27,8 @@ class Switchee {
 	{
 		$this->EE =& get_instance();
 		
-		// reduce the PCRE default recursion limit to a safe level so that if a stack overflow
-		// occurs a PCRE error is generated rather than a server crash (segmentation fault)
+		// reduce the PCRE default recursion limit to a safe level to prevent a server crash 
+		// (segmentation fault) when the available stack is exhausted before recursion limit reached
 		// Apache *nix executable stack size is 8Mb, so safe size is 16777
 		// Apache Win32 executable stack size is 256Kb, so safe size is 524
 		ini_set('pcre.recursion_limit', '16777');
@@ -92,10 +92,10 @@ class Switchee {
 		/*
 		$pattern = '/{switchee(?>(?!{\/?switchee).|(?R))*{\/switchee/si';
 		*/
-		// more memory efficient version of the above...
+		// more memory efficient version of the above...	
 		$pattern = '#{switchee(?>(?:[^{]++|{(?!\/?switchee[^}]*}))+|(?R))*{\/switchee#si';
 		$tagdata = preg_replace_callback($pattern, array(get_class($this), '_placeholders'), $tagdata);
-		
+	
 		// returns NULL on PCRE error
 		if ($tagdata === NULL && $debug)
 		{
@@ -213,7 +213,7 @@ class Switchee {
 			// convert the outer shell of {switchee} tag pairs to plugin tags {exp:switchee}
 			// now we can do this all over again...
 			$val = preg_replace( array('/^{switchee/i', '/{\/switchee$/i'), array('{exp:switchee', '{/exp:switchee'), $val);
-			$this->return_data = str_replace('[_'.__CLASS__.'_'.($index+1).']', $val, $this->return_data);
+			$this->return_data = str_replace('{[_'.__CLASS__.'_'.($index+1).']', $val, $this->return_data);
 		}
 	}
 	
@@ -229,7 +229,7 @@ class Switchee {
 	private function _placeholders($matches)
 	{
 		$this->_ph[] = $matches[0];
-		return '[_'.__CLASS__.'_'.count($this->_ph).']';
+		return '{[_'.__CLASS__.'_'.count($this->_ph).']';
 	}	
 	
 	/** 
