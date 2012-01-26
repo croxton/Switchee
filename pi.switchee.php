@@ -43,6 +43,21 @@ class Switchee {
 		// the variable we want to find
 		$var = $this->EE->TMPL->fetch_param('variable') ? $this->EE->TMPL->fetch_param('variable') : '';
 		
+		// add late parsed variables like logged_in and member_id that are already available in session
+		switch($var)
+		{
+			case '{logged_in}':
+			case '{member_id}':
+			case '{logged_in_member_id}':
+				$var = $this->EE->session->userdata('member_id');
+				break;
+			case '{group_id}':
+			case '{logged_in_group_id}':
+			case '{member_group}':
+				$var = $this->EE->session->userdata('group_id');
+				break;
+		}
+
 		// debug?
 		$debug = (bool) preg_match('/1|on|yes|y/i', $this->EE->TMPL->fetch_param('debug'));	
 		
