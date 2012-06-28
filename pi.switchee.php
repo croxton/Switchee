@@ -154,7 +154,7 @@ class Switchee {
 						// check for a string contained within hashes #regex#
 						if (preg_match('/^#(.*)#$/', $case_value))
 						{
-							if (preg_match($case_value, $var))
+							if (preg_match($case_value, $var, $case_vars))
 							{		
 								// we've found a match, grab case content and exit loop	
 								$this->return_data = substr($tagdata, $starts_at, $ends_at - $starts_at);
@@ -164,6 +164,19 @@ class Switchee {
 								{
 									$this->EE->TMPL->log_item("Switchee: regex match: case '{$case_value}' matched variable '{$var}'");
 								}
+
+                                if ( count($case_vars) > 1)
+                                { // pattern used capture groups, make them available as variables
+                                    foreach( $case_vars as $case_var_key => $case_var_value)
+                                    {
+                                        if ($debug)
+                                        {
+                                            $this->EE->TMPL->log_item("Switchee: captured variable: '{switchee:{$case_var_key}}' => '{$case_var_value}'");
+                                        }
+
+                                        $this->return_data = preg_replace("#{switchee:{$case_var_key}}#", $case_var_value, $this->return_data);
+                                    }
+                                }
 								
 								break 2;
 							}
