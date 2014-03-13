@@ -42,7 +42,9 @@ class Switchee {
 		
 		// the variable we want to find
 		$var = $this->EE->TMPL->fetch_param('variable') ? $this->EE->TMPL->fetch_param('variable') : '';
-		
+
+		$match_all = ( $this->EE->TMPL->fetch_param('match') == 'all' );
+
 		// debug?
 		$debug = (bool) preg_match('/1|on|yes|y/i', $this->EE->TMPL->fetch_param('debug'));	
 		
@@ -107,7 +109,11 @@ class Switchee {
 		
 		// now we need to generate a new array of tag pairs for our tagdata
 		$tag_vars = $this->EE->functions->assign_variables($tagdata);
-		
+
+		$has_match = false;
+
+		$temp_return_data = '';
+
 		foreach ($tag_vars['var_pair'] as $key => $val)
 		{	
 			// is this tag pair a case?
@@ -122,10 +128,9 @@ class Switchee {
 				// get the position of the content inside the case being evaluated
 				$starts_at = strpos($tagdata, "{case_".$index."}") + strlen("{case_".$index."}");
 				$ends_at = strpos($tagdata, "{/case}", $starts_at);
-				
+
 				if(isset($val['value']))
 				{
-
 					$val_array = array();
 					
 					if (stristr($val['value'], '|'))
@@ -157,41 +162,56 @@ class Switchee {
 							if (preg_match($case_value, $var))
 							{		
 								// we've found a match, grab case content and exit loop	
-								$this->return_data = substr($tagdata, $starts_at, $ends_at - $starts_at);
+								$temp_return_data .= substr($tagdata, $starts_at, $ends_at - $starts_at);
 									
 								// log
 								if ($debug)
 								{
 									$this->EE->TMPL->log_item("Switchee: regex match: case '{$case_value}' matched variable '{$var}'");
 								}
-								
-								break 2;
+								$has_match = true;
+
+								if ( $match_all )
+								{
+									break;
+								}
+								else
+								{
+									break 2;
+								}
 							}
 						}
 					
 						if ($case_value == $var)
 						{
 							// we've found a match, grab case content and exit loop
-							$this->return_data = substr($tagdata, $starts_at, $ends_at - $starts_at);
+							$temp_return_data .= substr($tagdata, $starts_at, $ends_at - $starts_at);
 							
 							// log
 							if ($debug)
 							{
 								$this->EE->TMPL->log_item("Switchee: string match: case '{$case_value}' matched variable '{$var}'");
-							}	
-
-							break 2;
+							}
+							$has_match = true;
+							if ( $match_all )
+							{
+								break;
+							}
+							else
+							{
+								break 2;
+							}
 						}
 					}
 				}
 				
-				// default value	
-				if(isset($val['default']))
+				// default value
+				if(!$has_match && isset($val['default']))
 				{
 					if(strtolower($val['default']) == 'yes' || strtolower($val['default']) == 'true' || $val['default'] == '1')
 					{
 						// found a default, save matched content but keep search for a mtach (continue loop)
-						$this->return_data = substr($tagdata, $starts_at, $ends_at - $starts_at);
+						$temp_return_data .= substr($tagdata, $starts_at, $ends_at - $starts_at);
 							
 						// log
 						if ($debug)
@@ -200,12 +220,12 @@ class Switchee {
 						}	
 	
 					}
-				}	
+				}
 			}
 		}
 		
 		// replace namespaced no_results with the real deal
-		$this->return_data = str_replace(strtolower(__CLASS__).'_no_results', 'no_results', $this->return_data);
+		$temp_return_data = str_replace(strtolower(__CLASS__).'_no_results', 'no_results', $temp_return_data);
 		
 		// restore original content inside nested tags
 		foreach ($this->_ph as $index => $val)
@@ -213,8 +233,10 @@ class Switchee {
 			// convert the outer shell of {switchee} tag pairs to plugin tags {exp:switchee}
 			// now we can do this all over again...
 			$val = preg_replace( array('/^{switchee/i', '/{\/switchee$/i'), array('{exp:switchee', '{/exp:switchee'), $val);
-			$this->return_data = str_replace('{[_'.__CLASS__.'_'.($index+1).']', $val, $this->return_data);
+			$temp_return_data = str_replace('{[_'.__CLASS__.'_'.($index+1).']', $val, $temp_return_data);
 		}
+
+		$this->return_data = $temp_return_data;
 	}
 	
 	/** 
@@ -323,17 +345,20 @@ How to support no_result blocks inside wrapped tags:
 {/if}
 
 GET and POST globals can be evaluated by prefixing with get: or post:, e.g.:
-{exp:switchee variable = "post:my_var" parse="inward"}
+{exp:switchee variable="post:my_var" parse="inward"}
 
 Any global variable can be evaluated by prefixing with global:, e.g.:
-{exp:switchee variable = "global:my_var" parse="inward"}
+{exp:switchee variable="global:my_var" parse="inward"}
 
 Any Stash module variable can be evaluated by prefixing with stash:, e.g.:
-{exp:switchee variable = "stash:my_var" parse="inward"}
+{exp:switchee variable="stash:my_var" parse="inward"}
+
+You can use the match="all" parameter to return the results of all matching cases, instead of just the first one.
+{exp:switchee variable="my_var" match="all" parse="inward"}
 
 Debugging:
 To enable logging add the parameter debug="yes", e.g.:
-{exp:switchee variable = "my_var" parse="inward" debug="yes"}
+{exp:switchee variable="my_var" parse="inward" debug="yes"}
 
 	<?php
 		$buffer = ob_get_contents();
