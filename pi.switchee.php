@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'2.0.6',
+  'pi_version' =>'2.1',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
