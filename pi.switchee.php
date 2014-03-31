@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'2.1',
+  'pi_version' =>'2.1.1',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -60,11 +60,24 @@ class Switchee {
 		}
 		
 		// register variables created by Stash
-		// warning: stash will create a new template object, overwriting the current instance
 		if (strncmp($var, 'stash:', 6) == 0)
 		{
 			$var = substr($var, 6);
-			$var = stash::get($var);
+
+			if ( isset($this->EE->session->cache['stash']) && isset($this->EE->session->cache['stash'][$var]))
+			{
+				// first look in the native stash variables array, for speed's sake
+				$var = $this->EE->session->cache['stash'][$var];
+			}
+			else
+			{
+				// we'll need to invoke Stash itself
+				if ( ! class_exists('Stash'))
+				{
+				    include_once PATH_THIRD . 'stash/mod.stash.php';
+				}
+				$var = Stash::get($var);
+			}
 		}
 		
 		// register global vars
@@ -111,8 +124,8 @@ class Switchee {
 		$tag_vars = $this->EE->functions->assign_variables($tagdata);
 
 		$has_match = false;
-
 		$temp_return_data = '';
+		$default = '';
 
 		foreach ($tag_vars['var_pair'] as $key => $val)
 		{	
@@ -169,6 +182,7 @@ class Switchee {
 								{
 									$this->EE->TMPL->log_item("Switchee: regex match: case '{$case_value}' matched variable '{$var}'");
 								}
+
 								$has_match = true;
 
 								if ( $match_all )
@@ -192,7 +206,9 @@ class Switchee {
 							{
 								$this->EE->TMPL->log_item("Switchee: string match: case '{$case_value}' matched variable '{$var}'");
 							}
+
 							$has_match = true;
+
 							if ( $match_all )
 							{
 								break;
@@ -208,10 +224,11 @@ class Switchee {
 				// default value
 				if(!$has_match && isset($val['default']))
 				{
-					if(strtolower($val['default']) == 'yes' || strtolower($val['default']) == 'true' || $val['default'] == '1')
+					$default_param = strtolower($val['default']);
+					if($default_param == 'yes' || $default_param == 'y' || $default_param == 'true' || $default_param == '1')
 					{
-						// found a default, save matched content but keep search for a mtach (continue loop)
-						$temp_return_data .= substr($tagdata, $starts_at, $ends_at - $starts_at);
+						// found a default, save matched content but keep search for a match (continue loop)
+						$default = substr($tagdata, $starts_at, $ends_at - $starts_at);
 							
 						// log
 						if ($debug)
@@ -222,6 +239,12 @@ class Switchee {
 					}
 				}
 			}
+		}
+
+		// fallback to default value if no matches
+		if ( ! $has_match)
+		{
+			$temp_return_data = $default;
 		}
 		
 		// replace namespaced no_results with the real deal
@@ -329,7 +352,7 @@ HOW TO USE
 		
 		{!-- you can also nest Switchee by leaving off the 'exp:' in nested tags : --}
 		{switchee variable="{another_variable_to_test}" parse="inward"}
-			{case value="value1" default="Yes"}
+			{case value="value1" default="yes"}
 				nested content to show
 			{/case}
 		{/switchee}	
