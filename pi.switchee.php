@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'2.1.1',
+  'pi_version' =>'2.1.2',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -76,7 +76,8 @@ class Switchee {
 				{
 				    include_once PATH_THIRD . 'stash/mod.stash.php';
 				}
-				$var = Stash::get($var);
+				$stash = new Stash(TRUE);
+				$var = (string) $stash->get($var);
 			}
 		}
 		
@@ -373,7 +374,7 @@ GET and POST globals can be evaluated by prefixing with get: or post:, e.g.:
 Any global variable can be evaluated by prefixing with global:, e.g.:
 {exp:switchee variable="global:my_var" parse="inward"}
 
-Any Stash module variable can be evaluated by prefixing with stash:, e.g.:
+Any Stash variable can be evaluated by prefixing with stash:, e.g.:
 {exp:switchee variable="stash:my_var" parse="inward"}
 
 You can use the match="all" parameter to return the results of all matching cases, instead of just the first one.
