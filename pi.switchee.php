@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'2.1.2',
+  'pi_version' =>'3.0.0',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -24,9 +24,7 @@ class Switchee {
 	 * @return void
 	 */
 	public function Switchee() 
-	{
-		$this->EE =& get_instance();
-		
+	{	
 		// reduce the PCRE default recursion limit to a safe level to prevent a server crash 
 		// (segmentation fault) when the available stack is exhausted before recursion limit reached
 		// Apache *nix executable stack size is 8Mb, so safe size is 16777
@@ -38,25 +36,25 @@ class Switchee {
 		ini_set('pcre.backtrack_limit', '1000000');
 		
 		// fetch the tagdata
-		$tagdata = $this->EE->TMPL->tagdata;
+		$tagdata = ee()->TMPL->tagdata;
 		
 		// the variable we want to find
-		$var = $this->EE->TMPL->fetch_param('variable') ? $this->EE->TMPL->fetch_param('variable') : '';
+		$var = ee()->TMPL->fetch_param('variable') ? ee()->TMPL->fetch_param('variable') : '';
 
-		$match_all = ( $this->EE->TMPL->fetch_param('match') == 'all' );
+		$match_all = ( ee()->TMPL->fetch_param('match') == 'all' );
 
 		// debug?
-		$debug = (bool) preg_match('/1|on|yes|y/i', $this->EE->TMPL->fetch_param('debug'));	
+		$debug = (bool) preg_match('/1|on|yes|y/i', ee()->TMPL->fetch_param('debug'));	
 		
 		// register POST and GET values
 		if (strncmp($var, 'get:', 4) == 0)
 		{
-			$var = filter_var($this->EE->input->get(substr($var, 4)), FILTER_SANITIZE_STRING);
+			$var = filter_var(ee()->input->get(substr($var, 4)), FILTER_SANITIZE_STRING);
 		}
 		
 		if (strncmp($var, 'post:', 5) == 0)
 		{
-			$var = filter_var($this->EE->input->post(substr($var, 5)), FILTER_SANITIZE_STRING);
+			$var = filter_var(ee()->input->post(substr($var, 5)), FILTER_SANITIZE_STRING);
 		}
 		
 		// register variables created by Stash
@@ -64,10 +62,10 @@ class Switchee {
 		{
 			$var = substr($var, 6);
 
-			if ( isset($this->EE->session->cache['stash']) && isset($this->EE->session->cache['stash'][$var]))
+			if ( isset(ee()->session->cache['stash']) && isset(ee()->session->cache['stash'][$var]))
 			{
 				// first look in the native stash variables array, for speed's sake
-				$var = $this->EE->session->cache['stash'][$var];
+				$var = ee()->session->cache['stash'][$var];
 			}
 			else
 			{
@@ -86,21 +84,21 @@ class Switchee {
 		{
 			$var = substr($var, 7);
 			
-			if (array_key_exists($var, $this->EE->config->_global_vars))
+			if (array_key_exists($var, ee()->config->_global_vars))
 			{
-				$var = $this->EE->config->_global_vars[$var];
+				$var = ee()->config->_global_vars[$var];
 			}
 			else
 			{
 				// global has not been parsed yet, so we'll do it the hard way (this adds some overhead)
-				$var = $this->EE->TMPL->parse_globals(LD.$var.RD);
+				$var = ee()->TMPL->parse_globals(LD.$var.RD);
 			}
 		}
 		
 		// log
 		if ($debug)
 		{
-			$this->EE->TMPL->log_item("Switchee: evaluating variable {$var}");
+			ee()->TMPL->log_item("Switchee: evaluating variable {$var}");
 		}
 		
 		// replace content inside nested tags with indexed placeholders, storing it in an array for later
@@ -122,7 +120,7 @@ class Switchee {
 		$index = 0;
 		
 		// now we need to generate a new array of tag pairs for our tagdata
-		$tag_vars = $this->EE->functions->assign_variables($tagdata);
+		$tag_vars = ee()->functions->assign_variables($tagdata);
 
 		$has_match = false;
 		$temp_return_data = '';
@@ -166,8 +164,16 @@ class Switchee {
 						}
 						
 						// decode any encoded characters
-						$case_value = $this->EE->security->entity_decode($case_value);
-						$var = $this->EE->security->entity_decode($var);
+						if (version_compare(APP_VER, '3.0', '>=')) 
+						{
+							$case_value = ee('Security/XSS')->entity_decode($case_value);
+							$var = ee('Security/XSS')->entity_decode($var);
+						}
+						else
+						{
+							$case_value = ee()->security->entity_decode($case_value);
+							$var = ee()->security->entity_decode($var);
+						}
 
 						// is the case value a regular expression?
 						// check for a string contained within hashes #regex#
@@ -181,7 +187,7 @@ class Switchee {
 								// log
 								if ($debug)
 								{
-									$this->EE->TMPL->log_item("Switchee: regex match: case '{$case_value}' matched variable '{$var}'");
+									ee()->TMPL->log_item("Switchee: regex match: case '{$case_value}' matched variable '{$var}'");
 								}
 
 								$has_match = true;
@@ -205,7 +211,7 @@ class Switchee {
 							// log
 							if ($debug)
 							{
-								$this->EE->TMPL->log_item("Switchee: string match: case '{$case_value}' matched variable '{$var}'");
+								ee()->TMPL->log_item("Switchee: string match: case '{$case_value}' matched variable '{$var}'");
 							}
 
 							$has_match = true;
@@ -234,7 +240,7 @@ class Switchee {
 						// log
 						if ($debug)
 						{
-							$this->EE->TMPL->log_item("Switchee: default case found for variable '{$var}'. This will be returned if no match is found.");
+							ee()->TMPL->log_item("Switchee: default case found for variable '{$var}'. This will be returned if no match is found.");
 						}	
 	
 					}
@@ -293,7 +299,7 @@ class Switchee {
 
 		if ($pcre_err === PREG_NO_ERROR)
 		{
-			$this->EE->TMPL->log_item("Switchee: Successful non-match");
+			ee()->TMPL->log_item("Switchee: Successful non-match");
 		}
 		else 
 		{
@@ -301,22 +307,22 @@ class Switchee {
 			switch ($pcre_err) 
 			{
 			    case PREG_INTERNAL_ERROR:
-			        $this->EE->TMPL->log_item("Switchee: PREG_INTERNAL_ERROR");
+			        ee()->TMPL->log_item("Switchee: PREG_INTERNAL_ERROR");
 			        break;
 			    case PREG_BACKTRACK_LIMIT_ERROR:
-			        $this->EE->TMPL->log_item("Switchee: PREG_BACKTRACK_LIMIT_ERROR");
+			        ee()->TMPL->log_item("Switchee: PREG_BACKTRACK_LIMIT_ERROR");
 			        break;
 			    case PREG_RECURSION_LIMIT_ERROR:
-			        $this->EE->TMPL->log_item("Switchee: PREG_RECURSION_LIMIT_ERROR");
+			        ee()->TMPL->log_item("Switchee: PREG_RECURSION_LIMIT_ERROR");
 			        break;
 			    case PREG_BAD_UTF8_ERROR:
-			        $this->EE->TMPL->log_item("Switchee: PREG_BAD_UTF8_ERROR");
+			        ee()->TMPL->log_item("Switchee: PREG_BAD_UTF8_ERROR");
 			        break;
 			    case PREG_BAD_UTF8_OFFSET_ERROR:
-			        $this->EE->TMPL->log_item("Switchee: PREG_BAD_UTF8_OFFSET_ERROR");
+			        ee()->TMPL->log_item("Switchee: PREG_BAD_UTF8_OFFSET_ERROR");
 			        break;
 			    default:
-			        $this->EE->TMPL->log_item("Switchee: Unrecognized PREG error");
+			        ee()->TMPL->log_item("Switchee: Unrecognized PREG error");
 			        break;
 			}
 		}

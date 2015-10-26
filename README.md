@@ -1,4 +1,4 @@
-##Switchee v2.1.2
+##Switchee v3.0.0
 
 
 ### Switch/case control structure for templates
@@ -19,7 +19,7 @@ Switchee has the following advantages over if/else:
 * Optionally, all matching cases can be returned with `match="all"`
 * Fast and stable with very large strings without hitting PCRE memory / recursion issues (tested with millions of lines)
 
-If/Else has the following advantages over Switchee:
+If/else has the following advantages over Switchee:
 
 * Native, first-party functionality
 * Comparison, logical and mathematical operators
@@ -37,6 +37,19 @@ When working with dynamic variables such as those created by [Stash](https://git
 
 ##### Routing logic
 Need to output an entirely different page for a particular segment value? I strongly recommend you use [Resource Router](https://github.com/rsanchez/resource_router) or the native template routes functionality instead of complicating your templates with routing logic.
+
+
+### Installation
+
+Unzip the download and rename the extracted directory to 'switchee'.
+
+#### ExpressionEngine 2.x
+
+Move the 'switchee' folder to the `./system/expressionengine/third_party` directory.
+
+#### ExpressionEngine 3.x
+
+Move the 'switchee' folder to the `./system/user/addons` directory.
 
 
 ### How to use
