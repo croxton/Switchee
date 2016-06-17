@@ -23,7 +23,7 @@ class Switchee {
 	 * @access public
 	 * @return void
 	 */
-	public function Switchee() 
+	public function __construct() 
 	{	
 		// reduce the PCRE default recursion limit to a safe level to prevent a server crash 
 		// (segmentation fault) when the available stack is exhausted before recursion limit reached
