@@ -39,7 +39,7 @@ class Switchee {
 		$tagdata = ee()->TMPL->tagdata;
 		
 		// the variable we want to find
-		$var = ee()->TMPL->fetch_param('variable') ? ee()->TMPL->fetch_param('variable') : '';
+		$var = ee()->TMPL->fetch_param('variable', '');
 
 		$match_all = ( ee()->TMPL->fetch_param('match') == 'all' );
 
