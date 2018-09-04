@@ -121,13 +121,13 @@ class Switchee {
 		
 		// now we need to generate a new array of tag pairs for our tagdata
 		if (version_compare(APP_VER, '4.0', '>='))
-        {
+		{
 			$tag_vars = ee('Variables/Parser')->extractVariables($tagdata);
-        }
-        else
-        {
+		}
+		else
+		{
 			$tag_vars = ee()->functions->assign_variables($tagdata);
-        }
+		}
 
 		$has_match = false;
 		$temp_return_data = '';
