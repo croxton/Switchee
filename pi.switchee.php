@@ -2,7 +2,7 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'3.0.0',
+  'pi_version' =>'3.0.1',
   'pi_author' =>'Mark Croxton',
   'pi_author_url' => 'http://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
@@ -120,7 +120,14 @@ class Switchee {
 		$index = 0;
 		
 		// now we need to generate a new array of tag pairs for our tagdata
-		$tag_vars = ee()->functions->assign_variables($tagdata);
+		if (version_compare(APP_VER, '4.0', '>='))
+        {
+			$tag_vars = ee('Variables/Parser')->extractVariables($tagdata);
+        }
+        else
+        {
+			$tag_vars = ee()->functions->assign_variables($tagdata);
+        }
 
 		$has_match = false;
 		$temp_return_data = '';

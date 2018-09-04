@@ -1,4 +1,4 @@
-## Switchee v3.0.0
+## Switchee v3.0.1
 
 
 ### Switch/case control structure for templates
