@@ -2,9 +2,9 @@
 
 $plugin_info = array(
   'pi_name' => 'Switchee',
-  'pi_version' =>'3.0.1',
+  'pi_version' =>'3.0.2',
   'pi_author' =>'Mark Croxton',
-  'pi_author_url' => 'http://www.hallmark-design.co.uk/',
+  'pi_author_url' => 'https://www.hallmark-design.co.uk/',
   'pi_description' => 'Switch/case control structure for templates',
   'pi_usage' => Switchee::usage()
   );
@@ -41,28 +41,28 @@ class Switchee {
 		// the variable we want to find
 		$var = ee()->TMPL->fetch_param('variable', '');
 
-		$match_all = ( ee()->TMPL->fetch_param('match') == 'all' );
+		$match_all = ( ee()->TMPL->fetch_param('match') === 'all' );
 
 		// debug?
-		$debug = (bool) preg_match('/1|on|yes|y/i', ee()->TMPL->fetch_param('debug'));	
+		$debug = (bool) preg_match('/1|on|yes|y/i', (string) ee()->TMPL->fetch_param('debug'));
 		
 		// register POST and GET values
-		if (strncmp($var, 'get:', 4) == 0)
+		if (strncmp($var, 'get:', 4) === 0)
 		{
-			$var = filter_var(ee()->input->get(substr($var, 4)), FILTER_SANITIZE_STRING);
+            $var = $this->_filter_string(ee()->input->get(substr($var, 4)));
 		}
 		
-		if (strncmp($var, 'post:', 5) == 0)
+		if (strncmp($var, 'post:', 5) === 0)
 		{
-			$var = filter_var(ee()->input->post(substr($var, 5)), FILTER_SANITIZE_STRING);
+			$var = $this->_filter_string(ee()->input->post(substr($var, 5)));
 		}
 		
 		// register variables created by Stash
-		if (strncmp($var, 'stash:', 6) == 0)
+		if (strncmp($var, 'stash:', 6) === 0)
 		{
 			$var = substr($var, 6);
 
-			if ( isset(ee()->session->cache['stash']) && isset(ee()->session->cache['stash'][$var]))
+			if (isset(ee()->session->cache['stash'][$var]))
 			{
 				// first look in the native stash variables array, for speed's sake
 				$var = ee()->session->cache['stash'][$var];
@@ -80,7 +80,7 @@ class Switchee {
 		}
 		
 		// register global vars
-		if (strncmp($var, 'global:', 7) == 0)
+		if (strncmp($var, 'global:', 7) === 0)
 		{
 			$var = substr($var, 7);
 			
@@ -136,7 +136,7 @@ class Switchee {
 		foreach ($tag_vars['var_pair'] as $key => $val)
 		{	
 			// is this tag pair a case?
-			if (preg_match('/^case/', $key))
+			if (0 === strpos($key, "case"))
 			{		
 				// index of the case tag pair we're looking at
 				$index++;	
@@ -152,7 +152,7 @@ class Switchee {
 				{
 					$val_array = array();
 					
-					if (stristr($val['value'], '|'))
+					if (strpos($val['value'], '|') !== false)
 					{
 						$val_array = explode('|', $val['value']);
 					}
@@ -162,10 +162,10 @@ class Switchee {
 					}
 
 					// loop through each value and look for a match
-					foreach ($val_array as $case_index => $case_value)
+					foreach ($val_array as $case_value)
 					{
 						// convert '' and "" to an actual empty string
-						if ($case_value == "''" || $case_value == '""')
+						if ($case_value === "''" || $case_value === '""')
 						{
 							$case_value = '';
 						}
@@ -203,14 +203,12 @@ class Switchee {
 								{
 									break;
 								}
-								else
-								{
-									break 2;
-								}
-							}
+
+                                break 2;
+                            }
 						}
 					
-						if ($case_value == $var)
+						if ($case_value === $var)
 						{
 							// we've found a match, grab case content and exit loop
 							$temp_return_data .= substr($tagdata, $starts_at, $ends_at - $starts_at);
@@ -227,11 +225,9 @@ class Switchee {
 							{
 								break;
 							}
-							else
-							{
-								break 2;
-							}
-						}
+
+                            break 2;
+                        }
 					}
 				}
 				
@@ -239,7 +235,7 @@ class Switchee {
 				if(!$has_match && isset($val['default']))
 				{
 					$default_param = strtolower($val['default']);
-					if($default_param == 'yes' || $default_param == 'y' || $default_param == 'true' || $default_param == '1')
+					if($default_param === 'yes' || $default_param === 'y' || $default_param === 'true' || $default_param === '1')
 					{
 						// found a default, save matched content but keep search for a match (continue loop)
 						$default = substr($tagdata, $starts_at, $ends_at - $starts_at);
@@ -282,14 +278,29 @@ class Switchee {
 	 * Replaces nested tag content with placeholders
 	 *
 	 * @access private
-	 * @param array
+	 * @param array $matches
 	 * @return string
 	 */	
-	private function _placeholders($matches)
+	private function _placeholders(array $matches)
 	{
 		$this->_ph[] = $matches[0];
 		return '{[_'.__CLASS__.'_'.count($this->_ph).']';
-	}	
+	}
+
+    /**
+     * _filter_string
+     *
+     * Polyfill for FILTER_SANITIZE_STRING flag
+     *
+     * @access private
+     * @param string $string
+     * @return string
+     */
+    private function _filter_string(string $string)
+    {
+        $str = preg_replace('/\x00|<[^>]*>?/', '', $string);
+        return str_replace(["'", '"'], ['&#39;', '&#34;'], $str);
+    }
 	
 	/** 
 	 * _pcre error
