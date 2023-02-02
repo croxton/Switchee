@@ -287,20 +287,20 @@ class Switchee {
 		return '{[_'.__CLASS__.'_'.count($this->_ph).']';
 	}
 
-    /**
-     * _filter_string
-     *
-     * Polyfill for FILTER_SANITIZE_STRING flag
-     *
-     * @access private
-     * @param string $string
-     * @return string
-     */
-    private function _filter_string(string $string)
-    {
-        $str = preg_replace('/\x00|<[^>]*>?/', '', $string);
-        return str_replace(["'", '"'], ['&#39;', '&#34;'], $str);
-    }
+	/**
+	 * _filter_string
+	 *
+	 * Polyfill for FILTER_SANITIZE_STRING flag
+	 *
+	 * @access private
+	 * @param string $string
+	 * @return string
+	*/
+	private function _filter_string(string $string)
+	{
+	    $str = preg_replace('/\x00|<[^>]*>?/', '', $string);
+	    return str_replace(["'", '"'], ['&#39;', '&#34;'], $str);
+	}
 	
 	/** 
 	 * _pcre error
